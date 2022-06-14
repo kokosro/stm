@@ -2,9 +2,17 @@ const Ioredis = require('ioredis');
 const { default: Redlock } = require('redlock');
 const EventEmitter = require('events');
 
+const defaultOptions = {
+  driftFactor: 0.01,
+  retryCount: 100,
+  retryDelay: 20,
+  retryJitter: 50,
+  automaticExtensionThreshold: 500,
+};
 class Stm extends EventEmitter {
-  constructor(redisUrl) {
+  constructor(redisUrl, options = {}) {
     super();
+    this.options = Object.assign(options || {}, defaultOptions);
     this.redis = new Ioredis(redisUrl);
     this.prefixes = {
       topic: 'topic',
@@ -35,13 +43,7 @@ class Stm extends EventEmitter {
   async connect() {
     this.redlock = new Redlock(
       [this.redis],
-      {
-        driftFactor: 0.01,
-        retryCount: 40,
-        retryDelay: 200,
-        retryJitter: 200,
-        automaticExtensionThreshold: 500,
-      },
+      this.options,
     );
 
     this.connected = true;
